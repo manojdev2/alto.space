@@ -1,0 +1,9 @@
+{
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/modern_portfolio/index.html",
+      "permanent": true
+    }
+  ]
+}

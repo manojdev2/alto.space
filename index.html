@@ -1,0 +1,1266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Alto.AI — AI Operating System for Mobility Infrastructure</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root, [data-theme='dark']{
+    --bg:#070b10;
+    --bg2:#0a1118;
+    --bg-rgb:7,11,16;
+    --ink:#e8eef5;
+    --ink-2:#9aa9b8;
+    --ink-3:#5d6c7c;
+    --line:rgba(255,255,255,.08);
+    --line-2:rgba(255,255,255,.14);
+    --card:rgba(255,255,255,.02);
+    --card-2:rgba(255,255,255,.04);
+    --accent:oklch(0.78 0.16 195);
+    --accent-2:oklch(0.72 0.18 165);
+    --warm:oklch(0.78 0.15 70);
+    --vignette-1:rgba(7,11,16,.55);
+    --vignette-2:rgba(7,11,16,.95);
+    --vignette-3:rgba(7,11,16,.85);
+    --nav-bg:rgba(7,11,16,.78);
+    --grain-mode:overlay;
+    --grain-opacity:.04;
+    --three-fog:#070b10;
+    --three-wire:0x2a4a58;
+    --three-grid-1:0x18313d;
+    --three-grid-2:0x14242c;
+    --three-base:0x224050;
+    --three-stars:0x4a6a78;
+    --image-blend:normal;
+    --image-invert:0;
+  }
+  [data-theme='light']{
+    --bg:#f4f6f9;
+    --bg2:#ffffff;
+    --bg-rgb:244,246,249;
+    --ink:#0c1218;
+    --ink-2:#475567;
+    --ink-3:#7d8a9a;
+    --line:rgba(12,18,24,.08);
+    --line-2:rgba(12,18,24,.14);
+    --card:rgba(255,255,255,.7);
+    --card-2:rgba(255,255,255,.9);
+    --accent:oklch(0.55 0.16 215);
+    --accent-2:oklch(0.55 0.18 175);
+    --warm:oklch(0.62 0.16 50);
+    --vignette-1:rgba(244,246,249,.4);
+    --vignette-2:rgba(244,246,249,.92);
+    --vignette-3:rgba(244,246,249,.7);
+    --nav-bg:rgba(255,255,255,.78);
+    --grain-mode:multiply;
+    --grain-opacity:.025;
+    --three-fog:#e8edf3;
+    --three-wire:0xb6c4d0;
+    --three-grid-1:0xc8d2dc;
+    --three-grid-2:0xdde3ea;
+    --three-base:0xa6b6c6;
+    --three-stars:0xb6c4d0;
+    --image-blend:multiply;
+    --image-invert:0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--ink);font-family:"Space Grotesk",-apple-system,sans-serif;font-feature-settings:"ss01","cv11";-webkit-font-smoothing:antialiased;transition:background .4s ease, color .4s ease}
+  body{overflow-x:hidden}
+  ::selection{background:var(--accent);color:#000}
+
+  /* Fixed 3D canvas */
+  #stage{position:fixed;inset:0;z-index:0;pointer-events:none}
+  #stage canvas{display:block;width:100%;height:100%}
+  /* gradient vignette */
+  .vignette{position:fixed;inset:0;z-index:1;pointer-events:none;background:
+     radial-gradient(120% 80% at 50% 0%, transparent 30%, var(--vignette-1) 70%, var(--vignette-2) 100%),
+     radial-gradient(60% 50% at 50% 100%, var(--vignette-3), transparent 60%);
+  }
+  .grain{position:fixed;inset:0;z-index:2;pointer-events:none;opacity:var(--grain-opacity);mix-blend-mode:var(--grain-mode);background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='.6'/></svg>")}
+
+  /* Mouse-tracked highlight pointer (cursor spotlight) */
+  .cursor-glow{position:fixed;top:0;left:0;width:520px;height:520px;border-radius:50%;pointer-events:none;z-index:3;transform:translate3d(-50%,-50%,0);background:radial-gradient(closest-side, color-mix(in oklch, var(--accent) 30%, transparent), transparent 70%);mix-blend-mode:screen;opacity:.55;transition:opacity .3s ease;will-change:transform}
+  [data-theme='light'] .cursor-glow{mix-blend-mode:multiply;opacity:.35;background:radial-gradient(closest-side, color-mix(in oklch, var(--accent) 22%, transparent), transparent 70%)}
+  .cursor-dot{position:fixed;top:0;left:0;width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 16px var(--accent);pointer-events:none;z-index:4;transform:translate3d(-50%,-50%,0);transition:transform .12s ease, width .2s, height .2s, opacity .2s;will-change:transform}
+  .cursor-ring{position:fixed;top:0;left:0;width:38px;height:38px;border-radius:50%;border:1px solid color-mix(in oklch, var(--accent) 60%, transparent);pointer-events:none;z-index:4;transform:translate3d(-50%,-50%,0);will-change:transform;transition:width .2s, height .2s, border-color .2s, opacity .2s}
+  body.cursor-hover .cursor-ring{width:64px;height:64px;border-color:var(--accent)}
+  body.cursor-hover .cursor-dot{transform:translate3d(-50%,-50%,0) scale(.4)}
+  @media (max-width:880px){.cursor-glow,.cursor-dot,.cursor-ring{display:none}}
+
+  /* Top nav */
+  nav.topnav{position:fixed;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;justify-content:space-between;padding:18px 32px;backdrop-filter:blur(18px) saturate(140%);background:linear-gradient(to bottom, color-mix(in srgb, var(--bg) 60%, transparent), transparent);border-bottom:1px solid transparent;transition:border-color .3s, background .3s}
+  nav.topnav.scrolled{background:var(--nav-bg);border-color:var(--line)}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:600;letter-spacing:-.01em;font-size:15px;text-decoration:none;color:var(--ink)}
+  .brand-logo{height:22px;width:auto;display:block;transition:filter .3s ease}
+  [data-theme='dark'] .brand-logo{filter:invert(1) brightness(1.4)}
+  .brand .mark{width:22px;height:22px;border-radius:6px;position:relative;background:linear-gradient(135deg,var(--accent),var(--accent-2));box-shadow:0 0 24px color-mix(in oklch, var(--accent) 35%, transparent)}
+  .brand .mark::after{content:"";position:absolute;inset:5px;border-radius:3px;background:var(--bg);}
+  .brand .mark::before{content:"";position:absolute;inset:8px;border-radius:1.5px;background:linear-gradient(135deg,var(--accent),var(--accent-2));}
+  .brand b{font-weight:600}
+  .brand b span{color:var(--accent)}
+  .navlinks{display:flex;gap:28px;font-size:13px;color:var(--ink-2)}
+  .navlinks a{color:inherit;text-decoration:none;transition:color .2s}
+  .navlinks a:hover{color:var(--ink)}
+  .nav-cta{font-size:13px;padding:9px 16px;border-radius:999px;background:var(--ink);color:var(--bg);font-weight:500;text-decoration:none;transition:transform .15s ease}
+  .nav-cta:hover{transform:translateY(-1px)}
+  .nav-actions{display:flex;align-items:center;gap:10px}
+  .icon-btn{width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;border:1px solid var(--line-2);background:var(--card);color:var(--ink);cursor:pointer;transition:transform .15s ease, border-color .2s, background .2s}
+  .icon-btn:hover{border-color:var(--ink);transform:translateY(-1px)}
+  .icon-btn svg{width:16px;height:16px}
+
+  /* Scroll-to-top FAB */
+  .to-top{position:fixed;right:24px;bottom:24px;z-index:35;width:52px;height:52px;border-radius:50%;border:1px solid var(--line-2);background:var(--card-2);backdrop-filter:blur(14px) saturate(160%);color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 14px 40px rgba(0,0,0,.35);opacity:0;transform:translateY(20px) scale(.9);pointer-events:none;transition:opacity .3s, transform .3s, border-color .2s, background .2s}
+  .to-top.visible{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}
+  .to-top:hover{border-color:var(--accent);background:var(--accent);color:var(--bg)}
+  .to-top svg{width:18px;height:18px}
+  .to-top .ring{position:absolute;inset:-2px;border-radius:50%;border:1px solid color-mix(in oklch, var(--accent) 35%, transparent);animation:tt 2.4s ease-in-out infinite;pointer-events:none}
+  @keyframes tt{0%,100%{transform:scale(1);opacity:.4}50%{transform:scale(1.15);opacity:0}}
+
+  /* Image plate (uses uploaded references) */
+  .plate{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:var(--card)}
+  .plate img{display:block;width:100%;height:100%;object-fit:cover}
+  [data-theme='dark'] .plate img{opacity:.95}
+  .plate.tinted::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg, transparent 40%, color-mix(in srgb, var(--bg) 60%, transparent));pointer-events:none}
+  .plate-cap{position:absolute;left:14px;bottom:12px;font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--ink);letter-spacing:.14em;text-transform:uppercase;background:var(--card-2);backdrop-filter:blur(8px);padding:6px 10px;border-radius:999px;border:1px solid var(--line);z-index:2}
+
+  /* Layout */
+  main{position:relative;z-index:10}
+  section{position:relative;padding:80px 32px;display:flex;align-items:center}
+  .wrap{max-width:1280px;margin:0 auto;width:100%}
+  .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:32px}
+
+  /* Section reveal on scroll */
+  section{opacity:0;transform:translateY(28px);transition:opacity .8s ease,transform .8s ease}
+  section.in{opacity:1;transform:none}
+  #hero{opacity:1;transform:none}
+
+  /* Reusable type */
+  .eyebrow{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);display:inline-flex;align-items:center;gap:10px}
+  .eyebrow::before{content:"";width:18px;height:1px;background:var(--accent)}
+  h1.display{font-size:clamp(48px,7.6vw,108px);line-height:.94;letter-spacing:-.035em;font-weight:500;text-wrap:balance}
+  h2.display{font-size:clamp(40px,5.4vw,76px);line-height:.98;letter-spacing:-.03em;font-weight:500;text-wrap:balance}
+  h3{font-size:clamp(22px,2vw,30px);line-height:1.15;letter-spacing:-.015em;font-weight:500}
+  p.lead{font-size:clamp(17px,1.3vw,20px);line-height:1.55;color:var(--ink-2);max-width:62ch;text-wrap:pretty}
+  p.body{font-size:16px;line-height:1.6;color:var(--ink-2);text-wrap:pretty}
+  .mono{font-family:"JetBrains Mono",monospace}
+
+  .btn{display:inline-flex;align-items:center;gap:10px;padding:14px 22px;border-radius:999px;font-size:14px;font-weight:500;text-decoration:none;border:1px solid transparent;transition:transform .15s ease, background .2s, border-color .2s, color .2s;cursor:pointer}
+  .btn-primary{background:var(--ink);color:var(--bg)}
+  .btn-primary:hover{transform:translateY(-1px)}
+  .btn-ghost{color:var(--ink);border-color:var(--line-2);background:transparent}
+  .btn-ghost:hover{border-color:var(--ink);background:rgba(255,255,255,.04)}
+  .btn .arrow{display:inline-block;transition:transform .2s}
+  .btn:hover .arrow{transform:translateX(3px)}
+
+  /* HERO */
+  #hero{padding-top:140px;padding-bottom:80px;min-height:92vh}
+  #hero .hero-grid{grid-template-rows:auto auto;gap:40px}
+  #hero .col-l{grid-column:1/8}
+  #hero .col-r{grid-column:9/13;align-self:end}
+  #hero .ctas{display:flex;gap:14px;flex-wrap:wrap;margin-top:48px}
+  .hero-banner{position:relative;margin-top:64px;border-radius:18px;overflow:hidden;border:1px solid var(--line);background:var(--card);aspect-ratio:16/7}
+  .hero-banner img{width:100%;height:100%;object-fit:cover;display:block;opacity:.95}
+  .hero-banner::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg, transparent 50%, color-mix(in srgb, var(--bg) 70%, transparent));pointer-events:none}
+  .hero-banner .scan{position:absolute;left:0;right:0;top:0;height:1px;background:linear-gradient(90deg, transparent, var(--accent), transparent);opacity:.7;animation:scan 6s linear infinite}
+  @keyframes scan{0%{transform:translateY(0)}100%{transform:translateY(100%)}}
+  .hero-banner .corner{position:absolute;width:18px;height:18px;border:1px solid var(--accent);opacity:.7}
+  .hero-banner .corner.tl{top:14px;left:14px;border-right:none;border-bottom:none}
+  .hero-banner .corner.tr{top:14px;right:14px;border-left:none;border-bottom:none}
+  .hero-banner .corner.bl{bottom:14px;left:14px;border-right:none;border-top:none}
+  .hero-banner .corner.br{bottom:14px;right:14px;border-left:none;border-top:none}
+  .hero-banner .label{position:absolute;left:18px;bottom:18px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink);background:var(--card-2);backdrop-filter:blur(8px);padding:8px 12px;border-radius:999px;border:1px solid var(--line)}
+  .meta-row{display:flex;gap:36px;flex-wrap:wrap;color:var(--ink-3);font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;margin-top:60px}
+  .meta-row span{display:inline-flex;align-items:center;gap:8px}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent);animation:pulse 2s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:.5}50%{opacity:1}}
+
+  /* TRUST */
+  .pillars{grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);margin-top:64px;border-radius:0}
+  .pillar{background:var(--card);padding:36px 32px;backdrop-filter:blur(8px);transition:background .3s,transform .3s;cursor:pointer}
+  .pillar:hover{background:var(--card-2);transform:translateY(-3px)}
+  .pillar:hover .num{color:var(--accent)}
+  .pillar h3{margin:18px 0 12px}
+  .pillar .num{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.16em;color:var(--ink-3)}
+
+  /* PLATFORM tags */
+  .tag-cloud{display:flex;flex-wrap:wrap;gap:10px;margin-top:40px}
+  .tag{padding:9px 16px;border:1px solid var(--line-2);border-radius:999px;font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--ink-2);backdrop-filter:blur(6px);background:var(--card)}
+  .tag.on{color:var(--bg);background:var(--accent);border-color:var(--accent)}
+
+  /* Feature blocks */
+  .feature{display:grid;grid-template-columns:5fr 7fr;gap:80px;align-items:center}
+  .feature.flip{grid-template-columns:7fr 5fr}
+  .feature .copy h2{margin:18px 0 22px}
+  .feature .visual{position:relative;border:1px solid var(--line);border-radius:18px;background:var(--card);padding:28px;backdrop-filter:blur(12px);min-height:460px;overflow:hidden;transition:transform .4s ease,border-color .3s,box-shadow .4s}
+  .feature .visual:hover{transform:translateY(-4px);border-color:var(--accent);box-shadow:0 30px 60px -30px rgba(100,200,220,.25)}
+  .feature .visual::before{content:"";position:absolute;inset:0;background:radial-gradient(60% 60% at 50% 0%, rgba(100,200,220,.08), transparent 60%);pointer-events:none}
+
+  /* List style */
+  ul.bullets{list-style:none;padding:0;margin:24px 0 0}
+  ul.bullets li{display:flex;gap:14px;padding:11px 0;border-bottom:1px dashed var(--line);color:var(--ink-2);font-size:15px}
+  ul.bullets li:last-child{border-bottom:0}
+  ul.bullets li::before{content:"";width:6px;height:6px;background:var(--accent);border-radius:1px;margin-top:9px;flex-shrink:0;transform:rotate(45deg)}
+
+  /* Quote / chat in conv ai */
+  .chat{display:flex;flex-direction:column;gap:14px;margin-top:8px}
+  .chat .bubble{max-width:80%;padding:14px 16px;border-radius:14px;font-size:14px;line-height:1.45}
+  .chat .bubble.user{align-self:flex-end;background:var(--ink);color:var(--bg);border-bottom-right-radius:4px}
+  .chat .bubble.ai{align-self:flex-start;background:rgba(255,255,255,.05);border:1px solid var(--line);border-bottom-left-radius:4px;color:var(--ink)}
+  .chat .typing{display:inline-flex;gap:4px;align-items:center}
+  .chat .typing i{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:t 1.2s ease-in-out infinite}
+  .chat .typing i:nth-child(2){animation-delay:.15s}
+  .chat .typing i:nth-child(3){animation-delay:.3s}
+  @keyframes t{0%,80%,100%{opacity:.25;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
+  .chat .meta{font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--ink-3);letter-spacing:.12em;text-transform:uppercase;padding:0 6px}
+
+  /* Map mock */
+  .mapmock{position:absolute;inset:0;padding:24px;display:grid;grid-template-rows:auto 1fr auto;gap:14px}
+  .mapmock .topbar{display:flex;justify-content:space-between;align-items:center;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-3);letter-spacing:.14em;text-transform:uppercase}
+  .mapmock .topbar .live{display:inline-flex;align-items:center;gap:6px;color:var(--accent)}
+  .mapmock .body{position:relative;border-radius:12px;overflow:hidden;background:radial-gradient(80% 60% at 30% 30%, rgba(34,80,100,.45), rgba(8,14,22,.95))}
+  .mapmock .legend{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .legend .l{padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.02)}
+  .legend .l b{display:block;font-size:18px;font-weight:500;letter-spacing:-.01em}
+  .legend .l span{font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--ink-3);letter-spacing:.12em;text-transform:uppercase}
+
+  /* SVG paths grid (cells) */
+  .gridlines{position:absolute;inset:0;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:40px 40px;mask-image:radial-gradient(circle at 50% 50%, black, transparent 80%)}
+
+  /* Industries */
+  .industries{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--line);border:1px solid var(--line)}
+  .ind{background:var(--card);padding:32px 24px;min-height:280px;display:flex;flex-direction:column;justify-content:space-between;transition:background .25s}
+  .ind:hover{background:var(--card-2);transform:translateY(-3px)}
+  .ind:hover .num{color:var(--accent)}
+  .ind h4{font-size:18px;font-weight:500;letter-spacing:-.01em;margin-bottom:10px}
+  .ind p{font-size:13px;color:var(--ink-2);line-height:1.5}
+  .ind .num{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-3);letter-spacing:.14em}
+
+  /* Vision */
+  #vision{text-align:center}
+  #vision .wrap{max-width:1100px}
+  #vision h2{margin:30px auto 28px}
+  .stack{display:flex;flex-direction:column;gap:14px;align-items:center;margin-top:40px;font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--ink-2);letter-spacing:.05em}
+  .stack span{padding:10px 22px;border:1px solid var(--line-2);border-radius:999px;background:var(--card);backdrop-filter:blur(8px)}
+
+  /* CTA */
+  #cta{text-align:center;min-height:90vh}
+  #cta .ctas{justify-content:center;display:flex;gap:14px;flex-wrap:wrap;margin-top:48px}
+
+  /* Footer */
+  footer{position:relative;z-index:10;border-top:1px solid var(--line);padding:60px 32px 40px;background:var(--nav-bg);backdrop-filter:blur(16px)}
+  footer .wrap{display:flex;justify-content:space-between;align-items:flex-end;gap:40px;flex-wrap:wrap}
+  footer .legal{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-3);letter-spacing:.1em}
+  footer .tag{margin-top:14px}
+
+  /* Section number labels (left rail) */
+  .rail{display:none}
+  .rail-orig{position:fixed;left:24px;top:50%;transform:translateY(-50%);z-index:25;display:flex;flex-direction:column;gap:14px;pointer-events:none}
+  .rail .r{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.16em;color:var(--ink-3);display:flex;align-items:center;gap:10px;opacity:.55;transition:opacity .3s, color .3s}
+  .rail .r .bar{width:18px;height:1px;background:var(--ink-3);transition:width .35s, background .35s}
+  .rail .r.active{opacity:1;color:var(--ink)}
+  .rail .r.active .bar{width:34px;background:var(--accent)}
+
+  /* Scroll indicator */
+  .scroll-hint{position:absolute;bottom:48px;left:32px;display:flex;align-items:center;gap:12px;font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--ink-3);letter-spacing:.18em;text-transform:uppercase}
+  .scroll-hint .line{width:36px;height:1px;background:var(--ink-3);position:relative;overflow:hidden}
+  .scroll-hint .line::after{content:"";position:absolute;inset:0;background:var(--accent);transform:translateX(-100%);animation:sh 2s ease-in-out infinite}
+  @keyframes sh{0%{transform:translateX(-100%)}50%{transform:translateX(0)}100%{transform:translateX(100%)}}
+
+  /* Bigger "MOBILITY" letterform watermark */
+  .watermark{position:absolute;left:32px;right:32px;bottom:8%;font-size:clamp(80px,18vw,260px);font-weight:600;letter-spacing:-.05em;line-height:.85;color:transparent;-webkit-text-stroke:1px rgba(255,255,255,.06);pointer-events:none;user-select:none;text-align:center;mix-blend-mode:screen}
+
+  /* Operations canvas */
+  .ops-grid{display:grid;grid-template-columns:repeat(6,1fr);grid-auto-rows:46px;gap:6px;margin-top:28px}
+  .ops-grid .c{border-radius:4px;background:rgba(255,255,255,.04);position:relative;overflow:hidden}
+  .ops-grid .c::after{content:"";position:absolute;inset:0;background:var(--accent);transform:scaleY(var(--v,.2));transform-origin:bottom;opacity:.55;transition:transform .4s ease}
+
+  /* Dashboard mock */
+  .dash{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:24px}
+  .card{padding:18px;border:1px solid var(--line);border-radius:12px;background:var(--card);transition:transform .3s,border-color .3s,background .3s}
+  .card:hover{transform:translateY(-2px);border-color:var(--accent);background:var(--card-2)}
+  .card .lbl{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin-bottom:8px}
+  .card .val{font-size:28px;font-weight:500;letter-spacing:-.02em}
+  .card .delta{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--accent-2);margin-top:6px}
+  .spark{margin-top:10px;height:36px}
+
+  /* Geo map visual */
+  .geo-visual{padding:24px;display:flex;flex-direction:column;gap:14px}
+  .geo-head,.sim-head{display:flex;justify-content:space-between;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-3);letter-spacing:.14em;text-transform:uppercase}
+  .geo-head .live{color:var(--accent);display:inline-flex;align-items:center;gap:8px}
+  .geo-head .live i{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);animation:pulse 1.6s infinite}
+  .geo-map{flex:1;width:100%;min-height:0}
+  .geo-pins g circle:nth-child(2){animation:ringPulse 2.4s infinite}
+  .geo-pins g:nth-child(2) circle:nth-child(2){animation-delay:.4s}
+  .geo-pins g:nth-child(3) circle:nth-child(2){animation-delay:.8s}
+  @keyframes ringPulse{0%{transform:scale(1);opacity:.7}70%{transform:scale(1.8);opacity:0}100%{opacity:0}}
+  .geo-pins g{transform-box:fill-box;transform-origin:center}
+  .geo-legend{display:flex;gap:18px;flex-wrap:wrap;padding-top:6px;border-top:1px dashed var(--line)}
+  .geo-legend .lg{display:flex;align-items:center;gap:8px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+  .geo-legend .sw{width:10px;height:10px;border-radius:2px}
+  .geo-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding-top:14px;border-top:1px dashed var(--line)}
+  .geo-stats .lbl,.sim-stats .lbl{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin-bottom:4px}
+  .geo-stats .val,.sim-stats .val{font-size:22px;font-weight:500;letter-spacing:-.02em}
+
+  /* Simulation visual */
+  .sim-visual{padding:24px;display:flex;flex-direction:column;gap:14px}
+  .sim-chart{flex:1;width:100%;min-height:0}
+  .sim-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding-top:14px;border-top:1px dashed var(--line)}
+  .sim-stats .delta{font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--accent-2);margin-top:4px}
+
+  @media (max-width:880px){
+    nav.topnav{padding:14px 18px}
+    .navlinks{display:none}
+    section{padding:64px 18px}
+    .feature{grid-template-columns:1fr;gap:32px}
+    .feature.flip{grid-template-columns:1fr}
+    #hero .col-l, #hero .col-r{grid-column:1/13}
+    .pillars,.industries{grid-template-columns:1fr}
+    .rail{display:none}
+    .meta-row{gap:18px}
+  }
+</style>
+</head>
+<body>
+
+<!-- 3D stage -->
+<div id="stage"></div>
+<div class="vignette"></div>
+<div class="grain"></div>
+
+<!-- Cursor highlight -->
+<div class="cursor-glow" id="cursorGlow"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+<div class="cursor-dot" id="cursorDot"></div>
+
+<!-- Scroll to top FAB -->
+<button class="to-top" id="toTop" aria-label="Scroll to top" title="Scroll to top">
+  <span class="ring"></span>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>
+</button>
+
+<!-- Left rail -->
+<div class="rail" id="rail">
+  <div class="r" data-i="0"><span class="bar"></span>00 / Index</div>
+  <div class="r" data-i="1"><span class="bar"></span>01 / Hero</div>
+  <div class="r" data-i="2"><span class="bar"></span>02 / Trust</div>
+  <div class="r" data-i="3"><span class="bar"></span>03 / Platform</div>
+  <div class="r" data-i="4"><span class="bar"></span>04 / Conversational</div>
+  <div class="r" data-i="5"><span class="bar"></span>05 / Territory</div>
+  <div class="r" data-i="6"><span class="bar"></span>06 / Geospatial</div>
+  <div class="r" data-i="7"><span class="bar"></span>07 / Locator</div>
+  <div class="r" data-i="8"><span class="bar"></span>08 / Simulation</div>
+  <div class="r" data-i="9"><span class="bar"></span>09 / Operations</div>
+  <div class="r" data-i="10"><span class="bar"></span>10 / Commerce</div>
+  <div class="r" data-i="11"><span class="bar"></span>11 / Analytics</div>
+  <div class="r" data-i="12"><span class="bar"></span>12 / Industries</div>
+  <div class="r" data-i="13"><span class="bar"></span>13 / Why</div>
+  <div class="r" data-i="14"><span class="bar"></span>14 / Vision</div>
+  <div class="r" data-i="15"><span class="bar"></span>15 / Begin</div>
+</div>
+
+<!-- Top nav -->
+<nav class="topnav" id="topnav">
+  <a href="#" class="brand"><img src="assets/alto-logo.png" alt="Alto.Park" class="brand-logo" /></a>
+  <div class="navlinks">
+    <a href="#platform">Platform</a>
+    <a href="#features">Features</a>
+    <a href="#industries">Industries</a>
+    <a href="#vision">Vision</a>
+    <a href="#cta">Contact</a>
+  </div>
+  <div class="nav-actions">
+    <button class="icon-btn" id="themeBtn" aria-label="Toggle theme" title="Toggle theme">
+      <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+    <a href="#cta" class="nav-cta">Request Demo →</a>
+  </div>
+</nav>
+
+<main>
+
+<!-- HERO -->
+<section id="hero" data-screen-label="01 Hero">
+  <div class="wrap">
+    <div class="grid hero-grid">
+      <div class="col-l">
+        <h1 class="display" style="margin-top:0">The future of <em style="font-style:italic;font-family:'Space Grotesk';font-weight:400;color:var(--accent)">mobility infrastructure</em> starts here.</h1>
+      </div>
+      <div class="col-r">
+        <p class="lead">AI-powered intelligence for EV charging, fueling, and mobility networks — orchestrated through conversational AI and geospatial intelligence.</p>
+        <div class="ctas">
+          <a class="btn btn-primary" href="#cta">Request enterprise demo <span class="arrow">→</span></a>
+          <a class="btn btn-ghost" href="#platform">Explore the platform</a>
+        </div>
+      </div>
+    </div>
+    <div class="meta-row">
+      <span><i class="dot"></i>Live network · 2,847 nodes online</span>
+      <span>Operational AI · v4.2</span>
+      <span>Geospatial intelligence engine</span>
+      <span>Enterprise-grade · SOC2 / ISO27001</span>
+    </div>
+    <div class="hero-banner">
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <span class="scan"></span>
+      <img src="assets/banner.png" alt="Alto.Park operations control surface" />
+      <span class="label">Operations control surface · v4.2</span>
+    </div>
+  </div>
+  <div class="scroll-hint"><span>Scroll to explore</span><span class="line"></span><span>↓</span></div>
+</section>
+
+<!-- TRUST -->
+<section id="trust" data-screen-label="02 Trust">
+  <div class="wrap">
+    <div class="eyebrow">02 — Built for what's next</div>
+    <h2 class="display" style="margin-top:24px;max-width:18ch">Built for the next generation of intelligent infrastructure.</h2>
+    <div class="grid pillars">
+      <div class="pillar">
+        <span class="num">P.01</span>
+        <h3>Conversational operational AI</h3>
+        <p class="body">Transform operational complexity into intelligent automation through AI-driven mobility orchestration.</p>
+      </div>
+      <div class="pillar">
+        <span class="num">P.02</span>
+        <h3>Real-time territory intelligence</h3>
+        <p class="body">Visualize infrastructure performance, mobility demand, and operational coverage across regions and corridors.</p>
+      </div>
+      <div class="pillar">
+        <span class="num">P.03</span>
+        <h3>Enterprise-scale operations</h3>
+        <p class="body">Built for EV operators, fueling networks, fleets, smart cities, and multi-location mobility ecosystems.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PLATFORM -->
+<section id="platform" data-screen-label="03 Platform">
+  <div class="wrap">
+    <div class="eyebrow">03 — One intelligence layer</div>
+    <h2 class="display" style="margin-top:24px;max-width:20ch">One intelligence layer for modern mobility networks.</h2>
+    <p class="lead" style="margin-top:32px">Mobility infrastructure is evolving rapidly — but operations remain fragmented. Alto.Park unifies these into a single AI-powered operational platform:</p>
+    <div class="tag-cloud">
+      <span class="tag on">EV charging operations</span>
+      <span class="tag">fueling networks</span>
+      <span class="tag">territory intelligence</span>
+      <span class="tag on">mobility analytics</span>
+      <span class="tag">operational workflows</span>
+      <span class="tag">commerce ecosystems</span>
+      <span class="tag on">geospatial decision-making</span>
+      <span class="tag">predictive planning</span>
+      <span class="tag">infrastructure health</span>
+      <span class="tag">corridor optimization</span>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<a id="features"></a>
+
+<!-- 04 Conversational -->
+<section data-screen-label="04 Conversational">
+  <div class="wrap">
+    <div class="feature">
+      <div class="copy">
+        <div class="eyebrow">04 — Core feature</div>
+        <h2 class="display">Conversational operational AI.</h2>
+        <p class="body">Operators, fleets, and users interact naturally with Alto.Park through voice or chat. AI instantly analyzes operational data, predicts congestion, and optimizes infrastructure allocation.</p>
+        <ul class="bullets">
+          <li>Operational data analysis in real time</li>
+          <li>Congestion prediction across corridors</li>
+          <li>Expansion opportunity identification</li>
+          <li>Workflow coordination across teams</li>
+        </ul>
+      </div>
+      <div class="visual" style="padding:0">
+        <div class="plate" style="position:absolute;inset:0;border:none;border-radius:18px">
+          <img src="assets/ops-isometric.png" alt="Alto.Park Operations console with AGV fleet" />
+        </div>
+        <span class="plate-cap" style="left:18px;top:18px;bottom:auto">Operator console · AGV-10921 · Mobile Robots</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 05 Territory -->
+<section data-screen-label="05 Territory">
+  <div class="wrap">
+    <div class="feature flip">
+      <div class="visual" style="padding:0;background:var(--card)">
+        <div class="plate" style="position:absolute;inset:0;border:none;border-radius:18px">
+          <img src="assets/territory-map.png" alt="Territory map with carbon areas" />
+        </div>
+        <span class="plate-cap">Territory · 6 areas · 21.52 ha</span>
+      </div>
+      <div class="copy">
+        <div class="eyebrow">05 — Territory intelligence</div>
+        <h2 class="display">AI-powered territory intelligence.</h2>
+        <p class="body">Transform location data into strategic infrastructure decisions. Alto.Park continuously analyzes charging demand, mobility patterns, and corridor traffic to surface where infrastructure should grow next.</p>
+        <ul class="bullets">
+          <li>Underserved regions, surfaced automatically</li>
+          <li>Expansion opportunities ranked by ROI</li>
+          <li>High-demand mobility zones, mapped</li>
+          <li>Profitable infrastructure locations identified</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 06 Geospatial -->
+<section data-screen-label="06 Geospatial">
+  <div class="wrap">
+    <div class="feature">
+      <div class="copy">
+        <div class="eyebrow">06 — Live operations</div>
+        <h2 class="display">Real-time geospatial intelligence.</h2>
+        <p class="body">Visualize your entire mobility ecosystem through live AI-powered maps and operational heatmaps — utilization, fueling demand, congestion hotspots, and infrastructure health, all in real time.</p>
+        <ul class="bullets">
+          <li>Charging utilization across cities</li>
+          <li>Fueling demand by region and time</li>
+          <li>Congestion and bottleneck heatmaps</li>
+          <li>Infrastructure health & uptime</li>
+        </ul>
+      </div>
+      <div class="visual geo-visual">
+        <div class="geo-head">
+          <span>NETWORK MAP · NA-WEST CORRIDOR</span>
+          <span class="live"><i></i>LIVE · 2,847 STATIONS</span>
+        </div>
+        <svg class="geo-map" viewBox="0 0 540 340" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <radialGradient id="geoGlow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="var(--accent)" stop-opacity=".55"/>
+              <stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/>
+            </radialGradient>
+            <radialGradient id="geoWarm" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="var(--warm)" stop-opacity=".55"/>
+              <stop offset="100%" stop-color="var(--warm)" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <g stroke="var(--line)" stroke-width=".5" fill="none">
+            <path d="M0 60H540M0 120H540M0 180H540M0 240H540M0 300H540"/>
+            <path d="M60 0V340M140 0V340M220 0V340M300 0V340M380 0V340M460 0V340"/>
+          </g>
+          <path d="M30 260 Q120 190 200 210 T360 150 T520 90" fill="none" stroke="var(--accent)" stroke-width="1.4" stroke-dasharray="3 4" opacity=".7"/>
+          <path d="M40 300 Q160 260 260 230 T440 200 T520 160" fill="none" stroke="var(--accent-2)" stroke-width="1" stroke-dasharray="2 5" opacity=".5"/>
+          <circle cx="120" cy="220" r="46" fill="url(#geoGlow)"/>
+          <circle cx="320" cy="150" r="60" fill="url(#geoWarm)"/>
+          <circle cx="450" cy="110" r="38" fill="url(#geoGlow)"/>
+          <circle cx="220" cy="280" r="32" fill="url(#geoGlow)"/>
+          <g font-family="JetBrains Mono, monospace" font-size="9">
+            <g><circle cx="120" cy="220" r="4" fill="var(--accent)"/><circle cx="120" cy="220" r="9" fill="none" stroke="var(--accent)" opacity=".6"/><text x="132" y="224" fill="var(--ink-2)">SF · 92%</text></g>
+            <g><circle cx="320" cy="150" r="5" fill="var(--warm)"/><circle cx="320" cy="150" r="11" fill="none" stroke="var(--warm)" opacity=".6"/><text x="334" y="154" fill="var(--ink-2)">SLC · 81%</text></g>
+            <g><circle cx="450" cy="110" r="4" fill="var(--accent)"/><circle cx="450" cy="110" r="9" fill="none" stroke="var(--accent)" opacity=".6"/><text x="462" y="114" fill="var(--ink-2)">DEN · 67%</text></g>
+            <g><circle cx="220" cy="280" r="3" fill="var(--accent-2)"/><text x="232" y="284" fill="var(--ink-3)">LA · 54%</text></g>
+            <g><circle cx="80" cy="110" r="3" fill="var(--accent-2)"/><text x="92" y="114" fill="var(--ink-3)">SEA · 71%</text></g>
+            <g><circle cx="380" cy="260" r="3" fill="var(--accent-2)"/><text x="392" y="264" fill="var(--ink-3)">PHX · 48%</text></g>
+          </g>
+        </svg>
+        <div class="geo-legend">
+          <div class="lg"><span class="sw" style="background:var(--accent)"></span>HIGH UTIL</div>
+          <div class="lg"><span class="sw" style="background:var(--warm)"></span>CONGESTED</div>
+          <div class="lg"><span class="sw" style="background:var(--accent-2);opacity:.7"></span>STEADY</div>
+          <div class="lg"><span class="sw" style="background:var(--ink-3);opacity:.4"></span>LOW</div>
+        </div>
+        <div class="geo-stats">
+          <div><div class="lbl">Avg utilization</div><div class="val">73.4%</div></div>
+          <div><div class="lbl">Hot zones</div><div class="val">14</div></div>
+          <div><div class="lbl">Health</div><div class="val">99.9%</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 07 Locator -->
+<section data-screen-label="07 Locator">
+  <div class="wrap">
+    <div class="feature flip">
+      <div class="visual" style="padding:0;background:var(--card)">
+        <div class="plate" style="position:absolute;inset:0;border:none;border-radius:18px">
+          <img src="assets/ops-tablet.png" alt="Operations on tablet device" />
+        </div>
+        <span class="plate-cap" style="left:18px;top:18px;bottom:auto">Locator · driver view · 0×93u…2983</span>
+      </div>
+      <div class="copy">
+        <div class="eyebrow">07 — Locator</div>
+        <h2 class="display">Intelligent mobility locator.</h2>
+        <p class="body">Drivers, fleets, and operators discover EV charging hubs, fueling stations, smart mobility zones, partner services, and commerce ecosystems through intelligent search and AI recommendations.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 08 Simulation -->
+<section data-screen-label="08 Simulation">
+  <div class="wrap">
+    <div class="feature">
+      <div class="copy">
+        <div class="eyebrow">08 — Predictive AI</div>
+        <h2 class="display">AI expansion simulation.</h2>
+        <p class="body">Before investing in infrastructure, simulate it intelligently. Model corridor expansion, demand growth, operational profitability, and territory optimization — reducing risk and improving deployment efficiency.</p>
+        <ul class="bullets">
+          <li>Charging corridor expansion modeling</li>
+          <li>Infrastructure demand forecasting</li>
+          <li>Operational profitability projections</li>
+          <li>Territory optimization with constraint solving</li>
+        </ul>
+      </div>
+      <div class="visual sim-visual">
+        <div class="sim-head">
+          <span>SCENARIO MODEL · 16 RUNS</span>
+          <span style="color:var(--accent)">CONFIDENCE 94.2%</span>
+        </div>
+        <svg class="sim-chart" viewBox="0 0 540 280" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="simBand" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="var(--accent)" stop-opacity=".22"/>
+              <stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <g stroke="var(--line)" stroke-width=".5" fill="none">
+            <path d="M0 70H540M0 140H540M0 210H540"/>
+          </g>
+          <g font-family="JetBrains Mono, monospace" font-size="9" fill="var(--ink-3)">
+            <text x="6" y="66">$60M</text><text x="6" y="136">$40M</text><text x="6" y="206">$20M</text><text x="6" y="270">$0</text>
+          </g>
+          <path d="M0 180 C 90 175 160 168 230 150 S 380 120 540 70 L540 240 C 380 230 230 220 90 235 L0 240 Z" fill="url(#simBand)"/>
+          <path d="M0 230 C 100 226 200 220 300 215 S 460 210 540 205" fill="none" stroke="var(--ink-3)" stroke-width="1.2" stroke-dasharray="3 4" opacity=".6"/>
+          <path d="M0 220 C 100 210 200 195 300 175 S 460 145 540 130" fill="none" stroke="var(--accent-2)" stroke-width="1.4"/>
+          <path d="M0 210 C 90 195 160 175 230 145 S 380 90 540 60" fill="none" stroke="var(--accent)" stroke-width="2"/>
+          <g>
+            <circle cx="540" cy="60" r="5" fill="var(--accent)"/>
+            <circle cx="540" cy="60" r="11" fill="none" stroke="var(--accent)" stroke-width="1" opacity=".5"/>
+            <circle cx="540" cy="130" r="3.5" fill="var(--accent-2)"/>
+            <circle cx="540" cy="205" r="3" fill="var(--ink-3)"/>
+          </g>
+          <g font-family="JetBrains Mono, monospace" font-size="10" fill="var(--ink-2)">
+            <text x="380" y="80" fill="var(--accent)">▶ C · OPTIMIZED  $48.2M</text>
+            <text x="380" y="148" fill="var(--accent-2)">B · BASE  $36.8M</text>
+            <text x="380" y="223" fill="var(--ink-3)">A · CONSERV.  $24.1M</text>
+          </g>
+          <g font-family="JetBrains Mono, monospace" font-size="9" fill="var(--ink-3)">
+            <text x="20" y="270">Q1·26</text><text x="150" y="270">Q2</text><text x="280" y="270">Q3</text><text x="410" y="270">Q4</text><text x="500" y="270">'27</text>
+          </g>
+        </svg>
+        <div class="sim-stats">
+          <div><div class="lbl">Sites Q1–Q4</div><div class="val">+128</div><div class="delta">+32% vs base</div></div>
+          <div><div class="lbl">Payback</div><div class="val">2.4 yr</div><div class="delta">−0.8 yr</div></div>
+          <div><div class="lbl">Risk index</div><div class="val">0.18</div><div class="delta">Low</div></div>
+          <div><div class="lbl">IRR</div><div class="val">28.4%</div><div class="delta">+6.1pp</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 09 Operations -->
+<section data-screen-label="09 Operations">
+  <div class="wrap">
+    <div class="feature flip">
+      <div class="visual">
+        <div style="position:absolute;inset:24px;display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-3);letter-spacing:.14em;text-transform:uppercase"><span>OPERATIONS · NETWORK BALANCING</span><span style="color:var(--accent)">AUTO-MODE</span></div>
+          <div class="ops-grid" id="opsBalance"></div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+            <div class="card"><div class="lbl">Resources reallocated</div><div class="val">412</div></div>
+            <div class="card"><div class="lbl">Workflows automated</div><div class="val">86%</div></div>
+            <div class="card"><div class="lbl">Avg downtime ↓</div><div class="val">−41%</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="copy">
+        <div class="eyebrow">09 — Operations</div>
+        <h2 class="display">Dynamic infrastructure operations.</h2>
+        <p class="body">Automate operational coordination across distributed mobility networks. Optimize allocation, balancing, prioritization, workflows, and utilization through AI-driven automation.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 10 Commerce -->
+<section data-screen-label="10 Commerce">
+  <div class="wrap">
+    <div class="feature">
+      <div class="copy">
+        <div class="eyebrow">10 — Commerce</div>
+        <h2 class="display">Smart mobility commerce.</h2>
+        <p class="body">Transform mobility downtime into intelligent engagement. While charging or fueling, users preorder food, reserve lounges, access coworking, and receive contextual offers — creating new revenue across infrastructure ecosystems.</p>
+      </div>
+      <div class="visual">
+        <div style="position:absolute;inset:24px;display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-3);letter-spacing:.14em;text-transform:uppercase"><span>SESSION · BAY 14 · CHARGING</span><span style="color:var(--accent)">28 MIN REMAINING</span></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;flex:1">
+            <div class="card" style="background:linear-gradient(180deg,rgba(60,140,160,.12),rgba(60,140,160,.02))"><div class="lbl">Suggested · Café 36</div><div style="font-size:18px;margin-top:8px;letter-spacing:-.01em">Cortado + croissant</div><div class="mono" style="margin-top:8px;color:var(--accent);font-size:11px">READY IN 6 MIN · $7.40</div></div>
+            <div class="card"><div class="lbl">Lounge · Pier 36</div><div style="font-size:18px;margin-top:8px;letter-spacing:-.01em">Quiet booth · 30m</div><div class="mono" style="margin-top:8px;color:var(--ink-3);font-size:11px">RESERVE → WALK 90 SEC</div></div>
+            <div class="card"><div class="lbl">Coworking pass</div><div style="font-size:18px;margin-top:8px;letter-spacing:-.01em">Day rate · 25% off</div><div class="mono" style="margin-top:8px;color:var(--ink-3);font-size:11px">VALID NEXT 4H</div></div>
+            <div class="card"><div class="lbl">Pickup ready</div><div style="font-size:18px;margin-top:8px;letter-spacing:-.01em">Dry-cleaning + grocery</div><div class="mono" style="margin-top:8px;color:var(--ink-3);font-size:11px">2 ITEMS · BAY 14</div></div>
+          </div>
+          <div class="mono" style="font-size:11px;color:var(--ink-3);letter-spacing:.12em;text-transform:uppercase">+ CONTEXTUAL OFFERS · SCHEDULE PICKUPS · SMART SERVICES</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 11 Analytics -->
+<section data-screen-label="11 Analytics">
+  <div class="wrap">
+    <div class="eyebrow">11 — Enterprise dashboard</div>
+    <h2 class="display" style="margin-top:24px;max-width:20ch">Operational visibility at infrastructure scale.</h2>
+    <p class="lead" style="margin-top:24px">Predictive analytics, operational heatmaps, territory performance, utilization forecasting, predictive maintenance, congestion intelligence, and infrastructure KPIs — enabling real-time decision-making at network scale.</p>
+    <div class="grid" style="grid-template-columns:repeat(4,1fr);gap:14px;margin-top:48px">
+      <div class="card"><div class="lbl">Network uptime</div><div class="val">99.94%</div><div class="delta">+0.12 wow</div>
+        <svg class="spark" viewBox="0 0 200 36" preserveAspectRatio="none"><polyline points="0,8 25,10 50,6 75,8 100,4 125,6 150,4 175,2 200,4" fill="none" stroke="var(--accent)" stroke-width="1.5"/></svg></div>
+      <div class="card"><div class="lbl">Sessions / hr</div><div class="val">8,420</div><div class="delta">+18% mom</div>
+        <svg class="spark" viewBox="0 0 200 36" preserveAspectRatio="none"><polyline points="0,28 25,22 50,24 75,18 100,16 125,12 150,14 175,10 200,6" fill="none" stroke="var(--accent)" stroke-width="1.5"/></svg></div>
+      <div class="card"><div class="lbl">Predicted maint.</div><div class="val">12 alerts</div><div class="delta">−8 vs last wk</div>
+        <svg class="spark" viewBox="0 0 200 36" preserveAspectRatio="none"><polyline points="0,4 25,8 50,12 75,18 100,16 125,22 150,24 175,28 200,30" fill="none" stroke="var(--warm)" stroke-width="1.5"/></svg></div>
+      <div class="card"><div class="lbl">Avg corridor load</div><div class="val">73%</div><div class="delta">Healthy</div>
+        <svg class="spark" viewBox="0 0 200 36" preserveAspectRatio="none"><polyline points="0,18 25,16 50,18 75,14 100,16 125,18 150,16 175,18 200,14" fill="none" stroke="var(--accent)" stroke-width="1.5"/></svg></div>
+    </div>
+  </div>
+</section>
+
+<!-- 12 Industries -->
+<section id="industries" data-screen-label="12 Industries">
+  <div class="wrap">
+    <div class="eyebrow">12 — Industries we serve</div>
+    <h2 class="display" style="margin-top:24px;max-width:18ch">Built for the operators of real-world mobility.</h2>
+    <div class="industries" style="margin-top:64px">
+      <div class="ind"><span class="num">I.01</span><div><h4>EV Charging Networks</h4><p>Scale and optimize charging infrastructure using AI-powered operational intelligence.</p></div></div>
+      <div class="ind"><span class="num">I.02</span><div><h4>Fueling & Mobility Operators</h4><p>Coordinate fueling corridors, mobility hubs, and distributed service operations.</p></div></div>
+      <div class="ind"><span class="num">I.03</span><div><h4>Logistics & Fleet</h4><p>Optimize fleet movement, charging coordination, and infrastructure efficiency.</p></div></div>
+      <div class="ind"><span class="num">I.04</span><div><h4>Smart Cities</h4><p>Enable intelligent infrastructure planning and real-time operational visibility for urban mobility.</p></div></div>
+      <div class="ind"><span class="num">I.05</span><div><h4>Multi-Location Operators</h4><p>Manage territories, operational zones, and infrastructure ecosystems from one unified platform.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 13 Why -->
+<section data-screen-label="13 Why">
+  <div class="wrap">
+    <div class="eyebrow">13 — Why Alto.Park</div>
+    <h2 class="display" style="margin-top:24px;max-width:22ch">We're not building another mobility app. We're building the intelligence layer powering future mobility infrastructure.</h2>
+    <p class="lead" style="margin-top:32px">Alto.Park combines conversational AI, geospatial intelligence, operational automation, predictive infrastructure analytics, and real-world mobility orchestration to create adaptive, intelligent ecosystems at enterprise scale.</p>
+  </div>
+</section>
+
+<!-- 14 Vision -->
+<section id="vision" data-screen-label="14 Vision">
+  <div class="wrap">
+    <div class="eyebrow" style="justify-content:center">14 — Vision</div>
+    <h2 class="display">Mobility infrastructure is becoming intelligent.</h2>
+    <p class="lead" style="margin-left:auto;margin-right:auto">The future of mobility will not be powered by disconnected systems. It will be powered by AI-driven operations, predictive infrastructure, conversational coordination, and intelligent mobility ecosystems.</p>
+    <div class="stack">
+      <span>AI-driven operations</span>
+      <span>Predictive infrastructure</span>
+      <span>Conversational coordination</span>
+      <span>Intelligent mobility ecosystems</span>
+    </div>
+  </div>
+</section>
+
+<!-- 15 CTA -->
+<section id="cta" data-screen-label="15 CTA">
+  <div class="wrap">
+    <div class="eyebrow" style="justify-content:center">15 — Begin</div>
+    <h2 class="display" style="margin:24px auto 0;max-width:20ch">Ready to build the future of intelligent mobility?</h2>
+    <p class="lead" style="margin:32px auto 0">Modernize your mobility infrastructure with conversational operational AI, geospatial intelligence, and predictive mobility operations.</p>
+    <div class="ctas">
+      <a class="btn btn-primary" href="#">Schedule enterprise demo <span class="arrow">→</span></a>
+      <a class="btn btn-ghost" href="#">Talk to our team</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>
+      <div class="brand"><img src="assets/alto-logo.png" alt="Alto.Park" class="brand-logo" style="height:24px"/></div>
+      <div class="tag" style="margin-top:14px;display:inline-block">AI Operating System for Intelligent Mobility Infrastructure</div>
+    </div>
+    <div class="legal">© 2026 ALTO.AI BY KROSSARK· ALL RIGHTS RESERVED · v4.2.1</div>
+  </div>
+</footer>
+
+<!-- Three.js -->
+<script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
+<script>
+(() => {
+  // ---------------- Theme + interactions ----------------
+  const root = document.documentElement;
+  const stored = localStorage.getItem('alto-theme');
+  const initial = stored || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  root.setAttribute('data-theme', initial);
+  const themeBtn = document.getElementById('themeBtn');
+  const themeIcon = document.getElementById('themeIcon');
+  const sunPath = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>';
+  const moonPath = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+  function syncIcon(){ themeIcon.innerHTML = root.getAttribute('data-theme')==='light' ? moonPath : sunPath; }
+  syncIcon();
+  themeBtn?.addEventListener('click', () => {
+    const next = root.getAttribute('data-theme')==='light' ? 'dark' : 'light';
+    root.setAttribute('data-theme', next);
+    localStorage.setItem('alto-theme', next);
+    syncIcon();
+    window.dispatchEvent(new CustomEvent('theme-change', {detail:{theme:next}}));
+  });
+
+  // Mouse-tracked spotlight
+  const glow = document.getElementById('cursorGlow');
+  const dot  = document.getElementById('cursorDot');
+  const ring = document.getElementById('cursorRing');
+  let mx = window.innerWidth/2, my = window.innerHeight/2;
+  let gx = mx, gy = my, rx = mx, ry = my;
+  window.addEventListener('mousemove', (e)=>{ mx = e.clientX; my = e.clientY; });
+  document.querySelectorAll('a, button, .tag, .ind, .pillar, .card').forEach(el=>{
+    el.addEventListener('mouseenter', ()=> document.body.classList.add('cursor-hover'));
+    el.addEventListener('mouseleave', ()=> document.body.classList.remove('cursor-hover'));
+  });
+  function tickCursor(){
+    gx += (mx - gx) * 0.12; gy += (my - gy) * 0.12;
+    rx += (mx - rx) * 0.22; ry += (my - ry) * 0.22;
+    glow.style.transform = `translate3d(${gx}px, ${gy}px, 0) translate(-50%, -50%)`;
+    ring.style.transform = `translate3d(${rx}px, ${ry}px, 0) translate(-50%, -50%)`;
+    dot.style.transform  = `translate3d(${mx}px, ${my}px, 0) translate(-50%, -50%)`;
+    requestAnimationFrame(tickCursor);
+  }
+  tickCursor();
+
+  // Scroll to top
+  const toTop = document.getElementById('toTop');
+  function checkTop(){ toTop.classList.toggle('visible', window.scrollY > 600); }
+  window.addEventListener('scroll', checkTop, {passive:true}); checkTop();
+  toTop?.addEventListener('click', ()=> window.scrollTo({top:0, behavior:'smooth'}));
+
+  // ---------------- Three.js scroll-driven scene ----------------
+  const stage = document.getElementById('stage');
+  const renderer = new THREE.WebGLRenderer({antialias:true, alpha:true, powerPreference:'high-performance'});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setClearColor(0x000000, 0);
+  stage.appendChild(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x070b10, 0.012);
+  let __applyTheme = ()=>{};
+  window.addEventListener('theme-change', e => __applyTheme(e.detail.theme));
+
+  const camera = new THREE.PerspectiveCamera(46, 1, 0.1, 1000);
+  camera.position.set(0, 0, 60);
+
+  // ----- Globe of nodes (hero) -----
+  const globe = new THREE.Group();
+  scene.add(globe);
+
+  // wireframe sphere
+  const sphereGeom = new THREE.IcosahedronGeometry(22, 3);
+  const wire = new THREE.LineSegments(
+    new THREE.WireframeGeometry(sphereGeom),
+    new THREE.LineBasicMaterial({color:0x2a4a58, transparent:true, opacity:0.35})
+  );
+  globe.add(wire);
+
+  // node points on sphere
+  const NODES = 220;
+  const nodePos = new Float32Array(NODES*3);
+  const nodeCol = new Float32Array(NODES*3);
+  const nodeSize = new Float32Array(NODES);
+  for(let i=0;i<NODES;i++){
+    const phi = Math.acos(2*Math.random()-1);
+    const theta = Math.random()*Math.PI*2;
+    const r = 22;
+    const x = r*Math.sin(phi)*Math.cos(theta);
+    const y = r*Math.sin(phi)*Math.sin(theta);
+    const z = r*Math.cos(phi);
+    nodePos[i*3]=x; nodePos[i*3+1]=y; nodePos[i*3+2]=z;
+    const accent = Math.random() > 0.7;
+    if(accent){ nodeCol[i*3]=0.45; nodeCol[i*3+1]=0.95; nodeCol[i*3+2]=1.0; }
+    else { nodeCol[i*3]=0.4; nodeCol[i*3+1]=0.6; nodeCol[i*3+2]=0.7; }
+    nodeSize[i] = accent ? 2.4 : 1.2;
+  }
+  const nodeGeom = new THREE.BufferGeometry();
+  nodeGeom.setAttribute('position', new THREE.BufferAttribute(nodePos,3));
+  nodeGeom.setAttribute('color', new THREE.BufferAttribute(nodeCol,3));
+  nodeGeom.setAttribute('aSize', new THREE.BufferAttribute(nodeSize,1));
+
+  const nodeMat = new THREE.ShaderMaterial({
+    transparent:true,
+    depthWrite:false,
+    uniforms:{ uTime:{value:0}, uPixel:{value:renderer.getPixelRatio()} },
+    vertexShader:`
+      attribute float aSize;
+      attribute vec3 color;
+      varying vec3 vColor;
+      uniform float uTime;
+      void main(){
+        vColor = color;
+        vec4 mv = modelViewMatrix * vec4(position,1.0);
+        gl_Position = projectionMatrix * mv;
+        float pulse = 0.7 + 0.3*sin(uTime*1.5 + position.x*0.2 + position.y*0.2);
+        gl_PointSize = aSize * pulse * (300.0 / -mv.z);
+      }`,
+    fragmentShader:`
+      varying vec3 vColor;
+      void main(){
+        float d = length(gl_PointCoord - vec2(0.5));
+        if(d>0.5) discard;
+        float a = smoothstep(0.5,0.0,d);
+        gl_FragColor = vec4(vColor, a);
+      }`
+  });
+  const nodes = new THREE.Points(nodeGeom, nodeMat);
+  globe.add(nodes);
+
+  // arcs/connections — pre-build a few great-circle arcs between random node pairs
+  const arcGroup = new THREE.Group();
+  globe.add(arcGroup);
+  function makeArc(a, b, color){
+    const va = new THREE.Vector3(a[0],a[1],a[2]).normalize();
+    const vb = new THREE.Vector3(b[0],b[1],b[2]).normalize();
+    const r = 22;
+    const SEG = 50;
+    const pts = [];
+    for(let i=0;i<=SEG;i++){
+      const t = i/SEG;
+      const v = new THREE.Vector3().copy(va).lerp(vb,t).normalize();
+      const lift = r * (1 + 0.18*Math.sin(Math.PI*t));
+      pts.push(v.multiplyScalar(lift));
+    }
+    const g = new THREE.BufferGeometry().setFromPoints(pts);
+    const m = new THREE.LineBasicMaterial({color, transparent:true, opacity:0.55});
+    return new THREE.Line(g,m);
+  }
+  for(let k=0;k<28;k++){
+    const i = Math.floor(Math.random()*NODES), j = Math.floor(Math.random()*NODES);
+    const a = [nodePos[i*3], nodePos[i*3+1], nodePos[i*3+2]];
+    const b = [nodePos[j*3], nodePos[j*3+1], nodePos[j*3+2]];
+    const accent = Math.random()>0.4;
+    arcGroup.add(makeArc(a,b, accent ? 0x6dd4e0 : 0x3a6678));
+  }
+
+  // ----- City grid plane (territory) -----
+  const grid = new THREE.Group();
+  scene.add(grid);
+  const GRID = 42;
+  const gap = 1.6;
+  const halfG = (GRID-1)*gap*0.5;
+  const baseGeom = new THREE.BoxGeometry(0.7,1,0.7);
+  const baseMat = new THREE.MeshBasicMaterial({color:0x224050, transparent:true, opacity:0.9});
+  const accentMat = new THREE.MeshBasicMaterial({color:0x6dd4e0, transparent:true, opacity:0.95});
+  const cityHeights = [];
+  for(let i=0;i<GRID;i++){
+    for(let j=0;j<GRID;j++){
+      const x = (i*gap)-halfG;
+      const z = (j*gap)-halfG;
+      const dx = x/halfG, dz = z/halfG;
+      const ring = Math.sqrt(dx*dx+dz*dz);
+      const h = Math.max(0.5, (1-ring)*8 + Math.random()*5 + 1);
+      const m = (ring<0.35 && Math.random()>0.35) ? accentMat : baseMat;
+      const mesh = new THREE.Mesh(baseGeom, m);
+      mesh.position.set(x,-h*0.5,z);
+      mesh.scale.y = h;
+      grid.add(mesh);
+      cityHeights.push(h);
+    }
+  }
+  // grid lines floor
+  const gridHelper = new THREE.GridHelper(140, 70, 0x18313d, 0x14242c);
+  gridHelper.material.transparent = true; gridHelper.material.opacity = 0.6;
+  gridHelper.position.y = -0.02;
+  grid.add(gridHelper);
+
+  grid.position.set(0, -30, -40);
+  grid.rotation.x = -0.18;
+
+  // ----- Particle starfield (background depth) -----
+  const STARS = 1500;
+  const starGeom = new THREE.BufferGeometry();
+  const starPos = new Float32Array(STARS*3);
+  for(let i=0;i<STARS;i++){
+    starPos[i*3] = (Math.random()-0.5)*400;
+    starPos[i*3+1] = (Math.random()-0.5)*200;
+    starPos[i*3+2] = -Math.random()*400 - 30;
+  }
+  starGeom.setAttribute('position', new THREE.BufferAttribute(starPos,3));
+  const stars = new THREE.Points(starGeom, new THREE.PointsMaterial({color:0x4a6a78, size:0.6, transparent:true, opacity:0.55, depthWrite:false}));
+  scene.add(stars);
+
+  // ----- Corridor tube (geospatial / locator scene) -----
+  const corridorGroup = new THREE.Group();
+  scene.add(corridorGroup);
+  // a curving path of glowing rings simulating a charging corridor
+  const curve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(-30, -2, 0),
+    new THREE.Vector3(-15, 1, -10),
+    new THREE.Vector3(0, -1, -5),
+    new THREE.Vector3(12, 2, -12),
+    new THREE.Vector3(28, -1, -2),
+    new THREE.Vector3(40, 1, -16),
+  ]);
+  const tubeGeom = new THREE.TubeGeometry(curve, 200, 0.05, 8, false);
+  const tubeMat = new THREE.MeshBasicMaterial({color:0x6dd4e0, transparent:true, opacity:0.4});
+  const tube = new THREE.Mesh(tubeGeom, tubeMat);
+  corridorGroup.add(tube);
+  // ring stations along it
+  for(let i=0;i<14;i++){
+    const t = i/13;
+    const p = curve.getPoint(t);
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(0.55, 0.06, 12, 32),
+      new THREE.MeshBasicMaterial({color: i%3===0 ? 0xb8d97a : 0x6dd4e0, transparent:true, opacity:0.95})
+    );
+    ring.position.copy(p);
+    ring.rotation.x = Math.PI/2;
+    corridorGroup.add(ring);
+    // glow disk
+    const disk = new THREE.Mesh(
+      new THREE.RingGeometry(0.7, 1.2, 24),
+      new THREE.MeshBasicMaterial({color:0x6dd4e0, transparent:true, opacity:0.18, side:THREE.DoubleSide})
+    );
+    disk.position.copy(p);
+    disk.rotation.x = -Math.PI/2;
+    corridorGroup.add(disk);
+  }
+  corridorGroup.position.set(0, 50, -40);
+
+  // ----- Orbital network (final / vision) -----
+  const orbitGroup = new THREE.Group();
+  scene.add(orbitGroup);
+  const coreGeom = new THREE.IcosahedronGeometry(4, 1);
+  const core = new THREE.LineSegments(
+    new THREE.WireframeGeometry(coreGeom),
+    new THREE.LineBasicMaterial({color:0x6dd4e0, transparent:true, opacity:0.7})
+  );
+  orbitGroup.add(core);
+  // satellites
+  const satellites = [];
+  for(let i=0;i<24;i++){
+    const r = 9 + Math.random()*8;
+    const a = Math.random()*Math.PI*2;
+    const yOff = (Math.random()-0.5)*8;
+    const m = new THREE.Mesh(
+      new THREE.SphereGeometry(0.18,8,8),
+      new THREE.MeshBasicMaterial({color: Math.random()>0.6 ? 0xb8d97a : 0x6dd4e0})
+    );
+    m.userData = {r, a, yOff, speed:0.2 + Math.random()*0.5};
+    orbitGroup.add(m);
+    satellites.push(m);
+  }
+  // orbit rings
+  for(let i=0;i<3;i++){
+    const r = 10 + i*4;
+    const ringG = new THREE.RingGeometry(r-0.02, r+0.02, 96);
+    const ring = new THREE.Mesh(ringG, new THREE.MeshBasicMaterial({color:0x2a4a58, transparent:true, opacity:0.5, side:THREE.DoubleSide}));
+    ring.rotation.x = -Math.PI/2 + (i*0.18 - 0.18);
+    orbitGroup.add(ring);
+  }
+  orbitGroup.position.set(0, 130, -60);
+
+  // ---- Resize ----
+  function resize(){
+    const w = window.innerWidth, h = window.innerHeight;
+    renderer.setSize(w,h);
+    camera.aspect = w/h;
+    camera.updateProjectionMatrix();
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  // ---- Camera path keyed by scroll ----
+  // Per "scene index" 0..7 we set camera position + lookAt + which group is foregrounded
+  const KEYS = [
+    // 0 — hero / globe
+    { pos:new THREE.Vector3(0, 0, 60),     look:new THREE.Vector3(0,0,0),     bg:'#070b10' },
+    // 1 — trust / globe slight rotate
+    { pos:new THREE.Vector3(20, 6, 56),    look:new THREE.Vector3(0,0,0),     bg:'#070b10' },
+    // 2 — platform / pull back, tilt
+    { pos:new THREE.Vector3(-10, 14, 70),  look:new THREE.Vector3(0,4,-10),   bg:'#080d14' },
+    // 3 — conversational / push toward globe
+    { pos:new THREE.Vector3(-22, 3, 35),   look:new THREE.Vector3(0,0,0),     bg:'#080d14' },
+    // 4 — territory / drop down to grid
+    { pos:new THREE.Vector3(0, -8, 30),    look:new THREE.Vector3(0,-30,-40), bg:'#08111a' },
+    // 5 — geospatial / over the city
+    { pos:new THREE.Vector3(0, -20, 10),   look:new THREE.Vector3(0,-32,-40), bg:'#08111a' },
+    // 6 — locator / fly over corridor
+    { pos:new THREE.Vector3(-20, 48, -10), look:new THREE.Vector3(0,50,-40),  bg:'#0a141d' },
+    // 7 — simulation / ride along corridor
+    { pos:new THREE.Vector3(0, 50, -25),   look:new THREE.Vector3(20,50,-45), bg:'#0a141d' },
+    // 8 — operations / pull up
+    { pos:new THREE.Vector3(15, 60, -10),  look:new THREE.Vector3(0,55,-50),  bg:'#0a141d' },
+    // 9 — commerce / above corridor
+    { pos:new THREE.Vector3(-10, 70, -5),  look:new THREE.Vector3(0,55,-50),  bg:'#0b1620' },
+    // 10 — analytics / climb
+    { pos:new THREE.Vector3(0, 90, 20),    look:new THREE.Vector3(0,100,-40), bg:'#0b1620' },
+    // 11 — industries / approach orbit
+    { pos:new THREE.Vector3(15, 115, 30),  look:new THREE.Vector3(0,130,-60), bg:'#0b1822' },
+    // 12 — why / orbit closer
+    { pos:new THREE.Vector3(-12, 128, 10), look:new THREE.Vector3(0,130,-60), bg:'#0b1822' },
+    // 13 — vision / pull back show whole orbit
+    { pos:new THREE.Vector3(0, 130, 40),   look:new THREE.Vector3(0,130,-60), bg:'#0b1822' },
+    // 14 — cta / dive into core
+    { pos:new THREE.Vector3(0, 130, -45),  look:new THREE.Vector3(0,130,-60), bg:'#0d1b26' },
+  ];
+
+  const tmpV = new THREE.Vector3();
+  const tmpL = new THREE.Vector3();
+  function lerpKey(t){
+    const f = t * (KEYS.length-1);
+    const i0 = Math.max(0, Math.min(KEYS.length-1, Math.floor(f)));
+    const i1 = Math.max(0, Math.min(KEYS.length-1, i0+1));
+    const u = f - i0;
+    // ease
+    const e = u<0.5 ? 2*u*u : 1 - Math.pow(-2*u+2,2)/2;
+    tmpV.copy(KEYS[i0].pos).lerp(KEYS[i1].pos, e);
+    tmpL.copy(KEYS[i0].look).lerp(KEYS[i1].look, e);
+    return {pos:tmpV, look:tmpL};
+  }
+
+  // --- Scroll progress 0..1 across the document
+  let scrollProgress = 0;
+  let targetProgress = 0;
+  function onScroll(){
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    targetProgress = Math.max(0, Math.min(1, window.scrollY / Math.max(1,max)));
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+
+  // active rail item + nav scrolled state
+  const sections = [...document.querySelectorAll('section')];
+  const railItems = [...document.querySelectorAll('.rail .r')];
+  const topnav = document.getElementById('topnav');
+  function updateActive(){
+    const y = window.scrollY + window.innerHeight*0.35;
+    let idx = 0;
+    sections.forEach((s,i)=>{ if(y >= s.offsetTop) idx = i; });
+    railItems.forEach((r,i)=>{
+      // map every section to its rail entry (they're 1:1 plus index)
+      r.classList.toggle('active', i === idx+1 || (idx===0 && i===1));
+    });
+    topnav.classList.toggle('scrolled', window.scrollY > 40);
+  }
+  window.addEventListener('scroll', updateActive, {passive:true});
+  updateActive();
+
+  // section reveal
+  const revealIO = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('in'); });
+  }, {threshold:0.12, rootMargin:'0px 0px -10% 0px'});
+  sections.forEach(s=>revealIO.observe(s));
+
+  // ---- Heat / ops grids (DOM, scroll-reactive) ----
+  function buildHeat(elId, count, density){
+    const el = document.getElementById(elId);
+    if(!el) return [];
+    const cells = [];
+    for(let i=0;i<count;i++){
+      const c = document.createElement('div');
+      c.className = 'c';
+      c.style.setProperty('--v', (Math.random()*density).toFixed(2));
+      el.appendChild(c);
+      cells.push(c);
+    }
+    return cells;
+  }
+  const heatCells = buildHeat('opsHeat', 24*8, 0.95);
+  const balanceCells = buildHeat('opsBalance', 6*8, 0.85);
+
+  // Animate heatcells subtly
+  let heatT = 0;
+  function tickHeat(dt){
+    heatT += dt;
+    if(heatCells.length){
+      for(let i=0;i<heatCells.length;i++){
+        const v = 0.2 + 0.7*Math.abs(Math.sin(heatT*0.6 + i*0.13));
+        if(i%7===0) heatCells[i].style.setProperty('--v', v.toFixed(2));
+      }
+    }
+    if(balanceCells.length){
+      for(let i=0;i<balanceCells.length;i++){
+        const v = 0.15 + 0.7*Math.abs(Math.sin(heatT*0.9 + i*0.21));
+        if(i%5===0) balanceCells[i].style.setProperty('--v', v.toFixed(2));
+      }
+    }
+  }
+
+  // ---- Animate ----
+  let last = performance.now();
+  function frame(now){
+    const dt = Math.min(0.05, (now-last)/1000); last = now;
+    scrollProgress += (targetProgress - scrollProgress) * 0.08;
+
+    // camera key
+    const k = lerpKey(scrollProgress);
+    camera.position.lerp(k.pos, 0.18);
+    camera.lookAt(k.look);
+
+    // ambient rotations
+    globe.rotation.y += dt * 0.05;
+    globe.rotation.x = Math.sin(now*0.0002)*0.05;
+
+    // grid subtle wave
+    const gridChildren = grid.children;
+    const t = now*0.001;
+    for(let i=0; i<gridChildren.length; i++){
+      const c = gridChildren[i];
+      if(c.geometry === baseGeom){
+        const idx = i; // approximate
+        const baseH = cityHeights[idx] || 1;
+        const wave = 1 + 0.12*Math.sin(t*0.8 + idx*0.05);
+        c.scale.y = baseH * wave;
+        c.position.y = -c.scale.y*0.5;
+      }
+    }
+
+    // satellites
+    satellites.forEach(s=>{
+      s.userData.a += dt*0.25*s.userData.speed;
+      s.position.set(Math.cos(s.userData.a)*s.userData.r, s.userData.yOff + Math.sin(now*0.0008 + s.userData.r)*0.5, Math.sin(s.userData.a)*s.userData.r);
+    });
+    orbitGroup.rotation.y += dt*0.06;
+    core.rotation.x += dt*0.2;
+    core.rotation.y += dt*0.15;
+
+    // tube emissive flow via opacity pulsing
+    tube.material.opacity = 0.30 + 0.18*Math.abs(Math.sin(now*0.0015));
+
+    // node shader time
+    nodeMat.uniforms.uTime.value = now*0.001;
+
+    // stars parallax
+    stars.position.y = -scrollProgress * 30;
+
+    tickHeat(dt);
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  __applyTheme = function(theme){
+    const isLight = theme === 'light';
+    scene.fog.color.set(isLight ? 0xe8edf3 : 0x070b10);
+    wire.material.color.set(isLight ? 0xb6c4d0 : 0x2a4a58);
+    wire.material.opacity = isLight ? 0.5 : 0.35;
+    baseMat.color.set(isLight ? 0xa6b6c6 : 0x224050);
+    accentMat.color.set(isLight ? 0x3a8a9a : 0x6dd4e0);
+    gridHelper.material.color.set(isLight ? 0xc8d2dc : 0x18313d);
+    stars.material.color.set(isLight ? 0xb6c4d0 : 0x4a6a78);
+    stars.material.opacity = isLight ? 0.35 : 0.55;
+    tube.material.color.set(isLight ? 0x2a8aa0 : 0x6dd4e0);
+    arcGroup.children.forEach(a=>{ if(a.material) a.material.color.set(isLight ? 0x3a8a9a : 0x3a6678); });
+    core.material.color.set(isLight ? 0x2a8aa0 : 0x6dd4e0);
+  };
+  __applyTheme(root.getAttribute('data-theme'));
+})();
+</script>
+</body>
+</html>
